@@ -2,7 +2,7 @@
 
 An end-to-end intelligent customer enquiry management and workflow automation platform built for **Kiwi Connect Digital**.
 
-The system automates the intake, understanding, extraction, categorization, lead scoring, and draft response generation for customer business enquiries using **Google Gemini 2.5 Flash**, **FastAPI**, **SQLite (SQLAlchemy)**, and **React + Tailwind CSS**.
+The system automates the intake, understanding, extraction, categorization, lead scoring, and draft response generation for customer business enquiries using **Google Gemini (gemini-3.5-flash-lite)**, **FastAPI**, **SQLite (SQLAlchemy)**, and **React + Tailwind CSS**.
 
 ---
 
@@ -172,27 +172,31 @@ Submit this enquiry via the form or REST API:
 
 ---
 
-## 📽️ 2-3 Minute Video Demo Script
 
-1. **Introduction (0:00 - 0:25):**
-   - Introduce yourself as an AI Intern candidate for Kiwi Connect Digital.
-   - Mention the goal: Automating the manual workflow of reading, classifying, prioritizing, and drafting responses for incoming customer leads.
-2. **Customer Submission (0:25 - 0:55):**
-   - Open `http://localhost:5173` and click "Indore E-commerce (Assignment Test Case)" quick-fill.
-   - Click "Submit & Trigger AI Workflow".
-   - Show the instant AI breakdown card: Category `E-commerce Development`, Location `Indore`, Budget `Rs 50,000`, requirements tags, and the drafted response.
-3. **Admin Dashboard (0:55 - 1:40):**
-   - Switch to the "Admin Dashboard" tab.
-   - Walk through the KPI stat cards (Total, New, High Priority, In Progress, Converted).
-   - Point out the Category-Wise Distribution bar showing E-commerce and other services.
-   - Demonstrate the Search & Filter controls (filter by Category or Priority).
-4. **Admin Review & Response Customization (1:40 - 2:20):**
-   - Click "View" on the enquiry to open the detail modal.
-   - Show the AI breakdown and missing info.
-   - Change status to "In Progress" or "Converted".
-   - Edit the customer response text and click "Save Edited Response".
-5. **Bonus Features & Wrap-up (2:20 - 2:45):**
-   - Show the "Export CSV" button and open the downloaded spreadsheet.
-   - Mention duplicate enquiry detection and lead scoring.
-   - Conclude with architecture highlights (FastAPI + Google Gemini + SQLAlchemy + React).
+## AI Model Used
 
+- **Model:** Google Gemini `gemini-3.5-flash-lite` (free tier), called through the `google-genai` SDK. The model name comes from the `GEMINI_MODEL` setting in `.env`, so it can be changed without touching the code.
+- **Why this model:** the app makes one AI call per enquiry, so a lite model keeps cost and latency low while still returning valid structured JSON. It also supports Hinglish messages.
+- **Structured extraction:** one call with a JSON response schema returns the summary, service type, budget, location, urgency, requirements, missing information, category, priority, lead score, suggested reply, next steps and follow-up questions.
+- **Prompt rules:** the category and priority rules are written in `backend/app/services/prompts.py`. For example, "E-commerce Development" is chosen only when the customer mentions selling online, and High priority needs a deadline or a large budget.
+- **Handling incorrect AI output:** the response is validated with Pydantic (allowed categories, priority values, score range). If validation fails, the call is retried once. If Gemini still fails, or the API returns an error, the enquiry is saved with status `AI Pending`, a rule-based fallback fills the fields, and the real error is stored in `ai_error` for the admin.
+- **Traceability:** every enquiry stores which engine produced it in `ai_engine`, and the admin can re-run the analysis.
+
+## Third-Party Libraries and Tools
+
+**Backend (Python):** FastAPI, Uvicorn, SQLAlchemy, Pydantic, google-genai, python-dotenv, PyJWT, httpx, email-validator.
+
+**Frontend:** React, Vite, Tailwind CSS, react-router-dom.
+
+**Services and tools:** Google AI Studio (free Gemini API key), SQLite, Git and GitHub. The code was written with help from AI coding assistants, and I can explain the full implementation.
+
+## Admin Login
+
+Set `ADMIN_PASSWORD` and `JWT_SECRET` in `backend/.env` (see `backend/.env.example`). Open http://localhost:5173/admin and sign in with that password. The customer page at http://localhost:5173 shows only the enquiry form.
+
+## Security Notes
+
+- API keys and passwords are stored in `.env`, which is git-ignored. Only `.env.example` is committed.
+- All admin routes require a JWT, and the login endpoint is rate-limited.
+- Only sample customer data is used.
+- A production version would use individual admin accounts, hashed passwords, HTTPS, PostgreSQL and a background queue for the AI step.
